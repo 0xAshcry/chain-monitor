@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import time
 import threading
 import sqlite3
@@ -15,8 +16,8 @@ from rich import box
 
 BLOCKS_API = "https://gensyn-mainnet.explorer.alchemy.com/api/v2/main-page/blocks"
 STATS_API  = "https://gensyn-mainnet.explorer.alchemy.com/api/v2/stats"
-RPC_URL    = "https://gensyn-mainnet.g.alchemy.com/v2/_svLE5o6Zh9quznNSK3No"
-L1_RPC_URL = "https://eth-mainnet.g.alchemy.com/v2/_svLE5o6Zh9quznNSK3No"
+RPC_URL    = os.environ.get("GENSYN_RPC_URL",  "https://gensyn-mainnet.g.alchemy.com/public")
+L1_RPC_URL = os.environ.get("L1_RPC_URL",       "")  # set to your Ethereum mainnet RPC
 USDC_E       = "0x5b32c997211621d55a89Cc5abAF1cC21F3A6ddF5"
 BBV          = "0x2CBEE00F91A2BC50a7D5C53DFfa6BAB79d7E0243"  # BuybackVault proxy
 OP_PORTAL    = "0x0280eb8c305e414d56bf2e396859c27415ba54fc"  # OptimismPortal on L1 — holds all L2 ETH
