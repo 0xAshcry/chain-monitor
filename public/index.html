@@ -233,6 +233,7 @@ function renderDelphi(d) {
     ${row('Markets',      m.markets      ?? '—', W)}
     ${row('Vol 24h',      $m((m.buy_vol_24h || 0) + (m.sell_vol_24h || 0)), T)}
     ${row('Total Vol',    $m(bv + sv),            W)}
+    ${row('Total Fees',   $m(m.total_fees || 0),  T)}
     ${row('Traders',      m.traders      || 0,    W)}
     ${row('Resolutions',  m.resolutions  || 0,    W)}
   </table>`;
