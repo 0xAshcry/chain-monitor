@@ -100,6 +100,10 @@
   <div class="panel-title">Recent Blocks</div>
   <span class="dim">loading…</span>
 </div>
+<div class="panel" id="p-usdc">
+  <div class="panel-title">Recent USDC.e Transfers</div>
+  <span class="dim">loading…</span>
+</div>
 
 <div class="footer">
   <span>gensyn-mainnet.explorer.alchemy.com · Goldsky/delphi-mainnet · Cloudflare D1</span>
@@ -109,6 +113,7 @@
 
 <script>
 const G = '#55cc55', R = '#cc5566', T = '#ddcc44', D = '#ffffff', W = '#ffffff';
+
 
 function n(v, fb = '—') {
   if (v == null) return fb;
@@ -187,9 +192,10 @@ function renderTokens(d) {
   const r = d.rpc || {};
   return `<table>
     <tr><th>Token</th><th class="r">Value</th></tr>
-    ${row('ETH Supply',    d.l1_eth != null ? d.l1_eth.toFixed(4) + ' ETH' : '—',            W)}
-    ${row('USDC.e Supply', usd(r.usdc_e),                                                      W)}
-    ${row('AI Supply',     r.ai_supply != null ? (r.ai_supply / 1e9).toFixed(2) + 'B' : '—', W)}
+    ${row('ETH Supply',      d.l1_eth != null ? d.l1_eth.toFixed(4) + ' ETH' : '—',            W)}
+    ${row('USDC.e Supply',  usd(r.usdc_e),                                                      W)}
+    ${row('USDC.e Vol 24h', d.usdc_vol_24h != null ? usd(d.usdc_vol_24h / 1e6) : '—',         T)}
+    ${row('AI Supply',      r.ai_supply != null ? (r.ai_supply / 1e9).toFixed(2) + 'B' : '—', W)}
     <tr><td colspan="2"><hr class="sep"></td></tr>
     <tr><td class="bold" style="color:${W}">Buy Burn Vault</td><td></td></tr>
     ${row('USDC.e Funding', usd(r.bbv_usdc), W)}
@@ -223,9 +229,11 @@ function renderDelphi(d) {
       ${bar(rv / total * 100, T)}
     </tr>
     <tr><td colspan="4"><hr class="sep"></td></tr>
-    ${row('Total Vol',   $m(bv + sv),       W)}
-    ${row('Traders',     m.traders || 0,    W)}
-    ${row('Resolutions', m.resolutions || 0, W)}
+    ${row('Markets',      m.markets      ?? '—', W)}
+    ${row('Vol 24h',      $m((m.buy_vol_24h || 0) + (m.sell_vol_24h || 0)), T)}
+    ${row('Total Vol',    $m(bv + sv),            W)}
+    ${row('Traders',      m.traders      || 0,    W)}
+    ${row('Resolutions',  m.resolutions  || 0,    W)}
   </table>`;
 }
 
@@ -235,14 +243,12 @@ function renderTrades(d) {
   if (!trades.length) return '<span class="dim">No trades yet</span>';
   const rows = trades.map(t => {
     const c    = t.side === 'BUY' ? G : R;
-    const dt   = new Date(t.timestamp_ * 1000).toLocaleString('en', {
-      month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-    });
+    const diff = Math.floor((Date.now() / 1000) - t.timestamp_);
+    const ago  = diff < 60 ? diff + 's ago' : diff < 3600 ? Math.floor(diff / 60) + 'm ago' : Math.floor(diff / 3600) + 'h ago';
     const addr = t.addr.slice(0, 6) + '…' + t.addr.slice(-4);
     return `<tr>
       <td class="bold" style="color:${c}">${t.side}</td>
-      <td style="color:${W};padding-left:8px">${dt}</td>
+      <td style="color:${W};padding-left:8px">${ago}</td>
       <td style="color:${W};padding-left:8px">${addr}</td>
       <td class="r bold" style="color:${W}">${usd(t.usdc / 1e6)}</td>
     </tr>`;
@@ -311,6 +317,47 @@ function renderBlocks(d) {
   </table>`;
 }
 
+// ── USDC.e Transfers ──────────────────────────────────────────────────────
+function timeAgo(isoStr) {
+  const diff = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
+  if (diff < 60)    return diff + 's ago';
+  if (diff < 3600)  return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  return Math.floor(diff / 86400) + 'd ago';
+}
+function shortAddr(h) {
+  return h ? h.slice(0, 6) + '…' + h.slice(-4) : '?';
+}
+function renderUsdce(d) {
+  const items = d.usdc_transfers || [];
+  if (!items.length) return '<span class="dim">No recent transfers found</span>';
+  const hdr = `<tr>
+    <th>Time</th>
+    <th style="padding-left:10px">From</th>
+    <th style="padding-left:10px">To</th>
+    <th class="r" style="padding-left:10px">Amount</th>
+    <th class="r" style="padding-left:10px">Tx</th>
+  </tr>`;
+  const rows = items.map(t => {
+    const decimals = Number(t.total?.decimals ?? 6);
+    const amount   = t.total?.value
+      ? (Number(t.total.value) / 10 ** decimals).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : '?';
+    const when   = t.timestamp ? timeAgo(t.timestamp) : '?';
+    const from   = shortAddr(t.from?.hash);
+    const to     = shortAddr(t.to?.hash);
+    const txHash = t.transaction_hash ? t.transaction_hash.slice(0, 8) + '…' : '?';
+    return `<tr>
+      <td style="color:${D}">${when}</td>
+      <td style="color:${D};padding-left:10px">${from}</td>
+      <td style="color:${D};padding-left:10px">${to}</td>
+      <td class="r bold" style="color:${T};padding-left:10px">${amount} USDC.e</td>
+      <td class="r" style="color:${D};padding-left:10px;font-size:12px">${txHash}</td>
+    </tr>`;
+  }).join('');
+  return `<table>${hdr}${rows}</table>`;
+}
+
 // ── refresh loop ──────────────────────────────────────────────────────────
 async function refresh() {
   try {
@@ -331,6 +378,7 @@ async function refresh() {
     setPanel('p-pool',    renderPool(d));
     setPanel('p-morpho',  renderMorpho(d));
     setPanel('p-blocks',  renderBlocks(d));
+    setPanel('p-usdc',    renderUsdce(d));
   } catch (e) {
     document.getElementById('status').textContent = '● ' + e.message;
     document.getElementById('status').style.color = R;
