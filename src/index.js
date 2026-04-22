@@ -265,6 +265,32 @@ async function syncDelphi(env) {
       .bind(r.id, +r.block_number, +r.timestamp_, r.transactionHash_, r.marketProxy, +r.winningOutcomeIdx, +r.marketCreatorReward, +r.refund, +r.marketCreatorTradingFeesCut));
 }
 
+// ── Pool 24h volume cache (module-level, 30s TTL) ─────────────────────────
+
+let _poolVolCache = { ts: 0, vol24h: null };
+
+async function fetchPoolVol24h() {
+  if (Date.now() - _poolVolCache.ts < 30_000) return _poolVolCache.vol24h;
+  const cutoff = Date.now() / 1000 - 86400;
+  let total = 0;
+  let url = `https://gensyn-mainnet.explorer.alchemy.com/api/v2/addresses/${POOL}/token-transfers?token=${USDC_E}`;
+  for (let page = 0; page < 10; page++) {
+    const r = await fetch(url, { headers: { 'User-Agent': 'chain-monitor/1.0' } });
+    const d = await r.json();
+    const items = d.items || [];
+    let done = false;
+    for (const t of items) {
+      if (new Date(t.timestamp).getTime() / 1000 < cutoff) { done = true; break; }
+      total += Number(t.total?.value || 0);
+    }
+    if (done || !d.next_page_params) break;
+    const qs = new URLSearchParams(d.next_page_params).toString();
+    url = `https://gensyn-mainnet.explorer.alchemy.com/api/v2/addresses/${POOL}/token-transfers?token=${USDC_E}&${qs}`;
+  }
+  _poolVolCache = { ts: Date.now(), vol24h: total };
+  return total;
+}
+
 // ── USDC.e cache (module-level, 30s TTL) ──────────────────────────────────
 
 let _usdceCache = { ts: 0, transfers: [], vol24h: null };
@@ -286,13 +312,14 @@ async function getUsdceData() {
 // ── /api/data handler ─────────────────────────────────────────────────────
 
 async function handleData(env) {
-  const [blocks, stats, rpc, l1_eth, delphi, usdc] = await Promise.allSettled([
+  const [blocks, stats, rpc, l1_eth, delphi, usdc, poolVol] = await Promise.allSettled([
     getJson(BLOCKS_API),
     getJson(STATS_API),
     fetchRpc(env),
     fetchL1Eth(env),
     fetchDelphiStats(env.DB),
     getUsdceData(),
+    fetchPoolVol24h(),
   ]);
 
   return Response.json({
@@ -304,6 +331,7 @@ async function handleData(env) {
     delphi:          delphi.status === 'fulfilled' ? delphi.value          : {},
     usdc_transfers:  usdc.status   === 'fulfilled' ? usdc.value.transfers  : [],
     usdc_vol_24h:    usdc.status   === 'fulfilled' ? usdc.value.vol24h     : null,
+    pool_vol_24h:    poolVol.status === 'fulfilled' ? poolVol.value        : null,
   }, {
     headers: {
       'Cache-Control': 'no-store, no-cache, must-revalidate',

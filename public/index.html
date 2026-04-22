@@ -264,14 +264,9 @@ function renderTrades(d) {
 // ── Uniswap V3 Pool ───────────────────────────────────────────────────────
 function renderPool(d) {
   const r = d.rpc || {};
-  const active = r.pool_tvl != null && r.pool_tvl > 0;
-  const sc = active ? G : D;
   return `<table>
     <tr><th>Metric</th><th class="r">Value</th></tr>
-    <tr>
-      <td style="color:${D}">Status</td>
-      <td class="r bold" style="color:${sc}">${active ? 'ACTIVE' : 'INACTIVE'}</td>
-    </tr>
+    ${row('Vol 24h',   d.pool_vol_24h != null ? usd(d.pool_vol_24h / 1e6) : '—', T)}
     ${row('ETH Price', r.pool_price != null ? '$' + r.pool_price.toFixed(2) : '—', W)}
     ${row('Pool TVL',  usd(r.pool_tvl),                                             W)}
   </table>`;
