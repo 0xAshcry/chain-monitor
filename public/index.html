@@ -391,7 +391,7 @@ function renderHistogram(d) {
     const bh = c / maxCount * ph;
     const x = (pL + i * barW).toFixed(1);
     const y = (pT + ph - bh).toFixed(1);
-    return `<rect x="${x}" y="${y}" width="${(barW - 1).toFixed(1)}" height="${bh.toFixed(1)}" fill="#4f8ef7"/>`;
+    return `<rect x="${x}" y="${y}" width="${(barW - 1).toFixed(1)}" height="${bh.toFixed(1)}" fill="${G}"/>`;
   }).join('');
 
   const grid = [0.25, 0.5, 0.75, 1].map(f => {
