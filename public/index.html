@@ -49,7 +49,7 @@
   .grid2 { display: grid; grid-template-columns: 1fr 1fr;     gap: 6px; margin-bottom: 6px; }
 
   table { width: 100%; border-collapse: collapse; }
-  td, th { padding: 1px 0; white-space: nowrap; vertical-align: middle; }
+  td, th { padding: 2px 0; white-space: nowrap; vertical-align: middle; }
   th { font-weight: bold; color: #ffffff; font-size: 13px; text-align: left; padding-bottom: 3px; }
   th.r { text-align: right; }
   td.r  { text-align: right; }
@@ -59,7 +59,7 @@
   .green { color: #55cc55; }
   .rose  { color: #cc5566; }
   .tan   { color: #ddcc44; }
-  .dim   { color: #ffffff; }
+  .dim   { color: rgba(255,255,255,0.45); }
 
   .bar-wrap { padding-left: 8px; vertical-align: middle; }
   .bar { height: 9px; background: #1a4a9f; display: inline-block; width: 90px; vertical-align: middle; }
@@ -69,7 +69,7 @@
   .footer {
     display: flex;
     justify-content: space-between;
-    margin-top: 2px;
+    margin-top: 8px;
     color: #ffffff;
     font-size: 12px;
   }
@@ -86,20 +86,22 @@
 <div class="grid3">
   <div class="panel" id="p-chain">  <div class="panel-title">Chain</div>      <span class="dim">loading…</span></div>
   <div class="panel" id="p-rpc">    <div class="panel-title">RPC Health</div> <span class="dim">loading…</span></div>
-  <div class="panel" id="p-tokens"> <div class="panel-title">Tokens</div>     <span class="dim">loading…</span></div>
+  <div class="panel" id="p-liquidity"> <div class="panel-title">Liquidity</div>  <span class="dim">loading…</span></div>
 </div>
 <div class="grid2">
   <div class="panel" id="p-delphi"> <div class="panel-title">Delphi Markets</div> <span class="dim">loading…</span></div>
   <div class="panel" id="p-trades"> <div class="panel-title">Recent Trades</div>  <span class="dim">loading…</span></div>
 </div>
-<div class="panel" id="p-histogram">
-  <div class="panel-title">Trade Size Distribution</div>
-  <span class="dim">loading…</span>
+<div class="grid2">
+  <div class="panel" id="p-histogram">
+    <div class="panel-title">Trade Size Distribution</div>
+    <span class="dim">loading…</span>
+  </div>
+  <div class="panel" id="p-top-traders"><div class="panel-title">Top Traders</div><span class="dim">loading…</span></div>
 </div>
-<div class="grid3">
-  <div class="panel" id="p-pool">      <div class="panel-title">ETH / USDC.e Pool</div> <span class="dim">loading…</span></div>
-  <div class="panel" id="p-morpho">    <div class="panel-title">Morpho Vault</div>    <span class="dim">loading…</span></div>
-  <div class="panel" id="p-liquidity"> <div class="panel-title">Liquidity</div>       <span class="dim">loading…</span></div>
+<div class="grid2">
+  <div class="panel" id="p-pool">   <div class="panel-title">ETH / USDC.e Pool</div> <span class="dim">loading…</span></div>
+  <div class="panel" id="p-morpho"> <div class="panel-title">Morpho Vault</div>       <span class="dim">loading…</span></div>
 </div>
 <div class="panel" id="p-blocks">
   <div class="panel-title">Recent Blocks</div>
@@ -192,26 +194,11 @@ function renderRpc(d) {
   </table>`;
 }
 
-// ── Tokens ────────────────────────────────────────────────────────────────
-function renderTokens(d) {
-  const r = d.rpc || {};
-  return `<table>
-    <tr><th>Token</th><th class="r">Value</th></tr>
-    ${row('ETH Supply',      d.l1_eth != null ? d.l1_eth.toFixed(4) + ' ETH' : '—',            W)}
-    ${row('USDC.e Supply',  usd(r.usdc_e),                                                      W)}
-    ${row('USDC.e Vol 24h', d.usdc_vol_24h != null ? usd(d.usdc_vol_24h / 1e6) : '—',         T)}
-    ${row('AI Supply',      r.ai_supply != null ? (r.ai_supply / 1e9).toFixed(2) + 'B' : '—', W)}
-    <tr><td colspan="2"><hr class="sep"></td></tr>
-    <tr><td class="bold" style="color:${W}">Buy Burn Vault</td><td></td></tr>
-    ${row('USDC.e Funding', usd(r.bbv_usdc), W)}
-  </table>`;
-}
-
 // ── Delphi Markets ────────────────────────────────────────────────────────
 function renderDelphi(d) {
   const m = d.delphi || {};
   const bv = m.buy_vol || 0, sv = m.sell_vol || 0, rv = m.redm_vol || 0;
-  const total = (bv + sv) || 1;
+  const total = (bv + sv + rv) || 1;
   const $m = v => usd(v / 1e6);
   return `<table>
     <tr><th>Activity</th><th class="r">USDC</th><th class="r" style="padding-left:8px">N</th><th></th></tr>
@@ -234,12 +221,12 @@ function renderDelphi(d) {
       ${bar(rv / total * 100, T)}
     </tr>
     <tr><td colspan="4"><hr class="sep"></td></tr>
-    ${row('Markets',      m.markets      ?? '—', W)}
-    ${row('Vol 24h',      $m((m.buy_vol_24h || 0) + (m.sell_vol_24h || 0)), T)}
-    ${row('Total Vol',    $m(bv + sv),            W)}
-    ${row('Total Fees',   $m(m.total_fees || 0),  T)}
-    ${row('Traders',      m.traders      || 0,    W)}
-    ${row('Resolutions',  m.resolutions  || 0,    W)}
+    <tr><th></th><th class="r">24h</th><th class="r" style="padding-left:12px">Total</th></tr>
+    <tr><td style="color:${W}">Markets</td>     <td class="r bold" style="color:${W}">${m.markets_24h ?? '—'}</td>                                                          <td class="r bold" style="color:${W};padding-left:12px">${m.markets ?? '—'}</td></tr>
+    <tr><td style="color:${W}">Volume</td>      <td class="r bold" style="color:${W}">${$m((m.buy_vol_24h || 0) + (m.sell_vol_24h || 0))}</td>                              <td class="r bold" style="color:${W};padding-left:12px">${$m(bv + sv)}</td></tr>
+    <tr><td style="color:${W}">Traders</td>     <td class="r bold" style="color:${W}">${m.traders_24h || 0}</td>                                                            <td class="r bold" style="color:${W};padding-left:12px">${m.traders || 0}</td></tr>
+    <tr><td style="color:${W}">Resolutions</td> <td class="r bold" style="color:${W}">${m.resolutions_24h || 0}</td>                                                        <td class="r bold" style="color:${W};padding-left:12px">${m.resolutions || 0}</td></tr>
+    <tr><td style="color:${W}">Fees</td>        <td class="r bold" style="color:${W}">${$m(m.fees_24h || 0)}</td>                                                           <td class="r bold" style="color:${W};padding-left:12px">${$m(m.total_fees || 0)}</td></tr>
   </table>`;
 }
 
@@ -293,7 +280,7 @@ function renderMorpho(d) {
 function renderBlocks(d) {
   const blocks = d.blocks || [];
   if (!blocks.length) return '<span class="dim">loading…</span>';
-  const rows = blocks.slice(0, 8).map(b => {
+  const rows = blocks.slice(0, 10).map(b => {
     const pct = b.gas_used_percentage || 0;
     return `<tr>
       <td class="bold" style="color:${W}">${b.height || '—'}</td>
@@ -322,10 +309,13 @@ function renderLiquidity(d) {
   const r = d.rpc || {}, m = d.delphi || {};
   const locked = ((m.buy_vol || 0) - (m.sell_vol || 0) - (m.redm_vol || 0)) / 1e6;
   return `<table>
-    <tr><th>Source</th><th class="r">USDC.e</th></tr>
+    <tr><th>Source</th><th class="r">Value</th></tr>
     ${row('On-chain Supply', usd(r.usdc_e),   W)}
     ${row('Delphi Locked',   usd(locked),      G)}
     ${row('Buy Burn Vault',  usd(r.bbv_usdc),  W)}
+    <tr><td colspan="2"><hr class="sep"></td></tr>
+    ${row('ETH Supply',  d.l1_eth != null ? d.l1_eth.toFixed(4) + ' ETH' : '—', W)}
+    ${row('$AI Supply',  r.ai_supply != null ? (r.ai_supply / 1e9).toFixed(2) + 'B' : '—', W)}
   </table>`;
 }
 
@@ -370,20 +360,41 @@ function renderUsdce(d) {
   return `<table>${hdr}${rows}</table>`;
 }
 
+// ── Top Traders Bar Chart ─────────────────────────────────────────────────
+function renderTopTraders(d) {
+  const traders = d.delphi?.top_traders || [];
+  if (!traders.length) return '<span class="dim">No data</span>';
+  const maxN = traders[0].n;
+  const rows = traders.map(t => {
+    const addr = t.addr.slice(0, 6) + '…' + t.addr.slice(-4);
+    return `<tr>
+      <td style="color:${W}">${addr}</td>
+      <td class="r bold" style="color:${W};padding-left:8px">${t.n}</td>
+      <td class="r" style="color:${W};padding-left:8px">${usd(t.vol / 1e6)}</td>
+      ${bar(t.n / maxN * 100, G)}
+    </tr>`;
+  }).join('');
+  return `<table>
+    <tr><th>Address</th><th class="r" style="padding-left:8px">Trades</th><th class="r" style="padding-left:8px">Volume</th><th></th></tr>
+    ${rows}
+  </table>`;
+}
+
 // ── Trade Size Histogram ──────────────────────────────────────────────────
 function renderHistogram(d) {
   const amounts = d.delphi?.trade_amounts || [];
   if (!amounts.length) return '<span class="dim">No data</span>';
 
-  const BINS = 50;
-  const maxVal = Math.max(...amounts);
-  const bw = maxVal / BINS;
+  const BINS = 30;
+  const sorted = [...amounts].sort((a, b) => a - b);
+  const cutoff = sorted[Math.floor(sorted.length * 0.99)];
+  const bw = cutoff / BINS;
   const counts = new Array(BINS).fill(0);
   for (const a of amounts) counts[Math.min(Math.floor(a / bw), BINS - 1)]++;
   const maxCount = Math.max(...counts);
 
-  const W = 880, H = 140;
-  const pL = 38, pR = 8, pT = 8, pB = 28;
+  const W = 880, H = 440;
+  const pL = 38, pR = 8, pT = 8, pB = 36;
   const pw = W - pL - pR, ph = H - pT - pB;
   const barW = pw / BINS;
 
@@ -398,14 +409,20 @@ function renderHistogram(d) {
     const y = (pT + ph - f * ph).toFixed(1);
     const label = Math.round(f * maxCount);
     return `<line x1="${pL}" y1="${y}" x2="${pL + pw}" y2="${y}" stroke="#ffffff" stroke-opacity="0.15" stroke-dasharray="3,3"/>
-            <text x="${pL - 3}" y="${(+y + 4).toFixed(1)}" fill="#ffffff" font-size="10" text-anchor="end" font-family="Courier New">${label}</text>`;
+            <text x="${pL - 3}" y="${(+y + 4).toFixed(1)}" fill="#ffffff" font-size="16" text-anchor="end" font-family="Courier New">${label}</text>`;
   }).join('');
 
   const xLabels = [0, 0.25, 0.5, 0.75, 1].map(f => {
-    const val = f * maxVal;
     const x = (pL + f * pw).toFixed(1);
-    const label = val >= 10 ? val.toFixed(0) : val.toFixed(2);
-    return `<text x="${x}" y="${H - 4}" fill="#ffffff" font-size="10" text-anchor="middle" font-family="Courier New">${label}</text>`;
+    let label;
+    if (f === 1) {
+      label = '>' + (cutoff >= 10 ? cutoff.toFixed(0) : cutoff.toFixed(2));
+    } else {
+      const val = f * cutoff;
+      label = val >= 10 ? val.toFixed(0) : val.toFixed(2);
+    }
+    const anchor = f === 1 ? 'end' : f === 0 ? 'start' : 'middle';
+    return `<text x="${x}" y="${H - 4}" fill="#ffffff" font-size="16" text-anchor="${anchor}" font-family="Courier New">${label}</text>`;
   }).join('');
 
   const axes = `<line x1="${pL}" y1="${pT}" x2="${pL}" y2="${pT + ph}" stroke="#ffffff" stroke-width="1"/>
@@ -414,7 +431,7 @@ function renderHistogram(d) {
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" style="display:block">
     ${grid}${bars}${axes}${xLabels}
   </svg>
-  <div style="text-align:center;font-size:11px;color:${T};margin-top:2px">Trade Size (USDC.e) · n=${amounts.length} · 50 bins</div>`;
+  <div style="text-align:center;font-size:14px;color:${T};margin-top:4px">Trade Size (USDC.e) · n=${amounts.length} · 30 bins</div>`;
 }
 
 // ── refresh loop ──────────────────────────────────────────────────────────
@@ -431,15 +448,15 @@ async function refresh() {
 
     setPanel('p-chain',   renderChain(d));
     setPanel('p-rpc',     renderRpc(d));
-    setPanel('p-tokens',  renderTokens(d));
-    setPanel('p-delphi',  renderDelphi(d));
-    setPanel('p-trades',  renderTrades(d));
-    setPanel('p-pool',      renderPool(d));
-    setPanel('p-morpho',    renderMorpho(d));
     setPanel('p-liquidity', renderLiquidity(d));
+    setPanel('p-delphi',   renderDelphi(d));
+    setPanel('p-trades',   renderTrades(d));
+    setPanel('p-pool',     renderPool(d));
+    setPanel('p-morpho',   renderMorpho(d));
     setPanel('p-blocks',    renderBlocks(d));
     setPanel('p-usdc',      renderUsdce(d));
-    setPanel('p-histogram', renderHistogram(d));
+    setPanel('p-histogram',    renderHistogram(d));
+    setPanel('p-top-traders',  renderTopTraders(d));
   } catch (e) {
     document.getElementById('status').textContent = '● ' + e.message;
     document.getElementById('status').style.color = R;
