@@ -93,6 +93,10 @@
   <div class="panel" id="p-delphi"> <div class="panel-title">Delphi Markets</div> <span class="dim">loading…</span></div>
   <div class="panel" id="p-trades"> <div class="panel-title">Recent Trades</div>  <span class="dim">loading…</span></div>
 </div>
+<div class="panel" id="p-trades-per-hour">
+  <div class="panel-title">Trades Per Hour</div>
+  <span class="dim">loading…</span>
+</div>
 <div class="grid2">
   <div class="panel" id="p-histogram">
     <div class="panel-title">Trade Size Distribution</div>
@@ -397,6 +401,52 @@ function renderTopTraders(d) {
   </table>`;
 }
 
+// ── Trades Per Hour ───────────────────────────────────────────────────────
+function renderTradesPerHour(d) {
+  const raw = d.delphi?.trades_per_hour || [];
+  if (!raw.length) return '<span class="dim">No data</span>';
+
+  // Fill all 48 hour buckets so gaps show as zero bars
+  const nowHr = Math.floor(Date.now() / 3600000);
+  const map = new Map(raw.map(r => [r.hr, r.n]));
+  const hours = Array.from({length: 48}, (_, i) => nowHr - 47 + i);
+  const counts = hours.map(hr => map.get(hr) || 0);
+  const maxCount = Math.max(...counts, 1);
+
+  const W = 880, H = 160;
+  const pL = 38, pR = 8, pT = 8, pB = 28;
+  const pw = W - pL - pR, ph = H - pT - pB;
+  const barW = pw / 48;
+
+  const bars = counts.map((c, i) => {
+    const bh = c / maxCount * ph;
+    const x = (pL + i * barW).toFixed(1);
+    const y = (pT + ph - bh).toFixed(1);
+    return `<rect x="${(+x + 0.5).toFixed(1)}" y="${y}" width="${(barW - 1).toFixed(1)}" height="${bh.toFixed(1)}" fill="${G}"/>`;
+  }).join('');
+
+  const grid = [0.5, 1].map(f => {
+    const y = (pT + ph - f * ph).toFixed(1);
+    return `<line x1="${pL}" y1="${y}" x2="${pL + pw}" y2="${y}" stroke="#ffffff" stroke-opacity="0.15" stroke-dasharray="3,3"/>
+            <text x="${pL - 3}" y="${(+y + 4).toFixed(1)}" fill="#ffffff" font-size="14" text-anchor="end" font-family="Courier New">${Math.round(f * maxCount)}</text>`;
+  }).join('');
+
+  const xLabels = [-48, -36, -24, -12, 0].map(offset => {
+    const i = 48 + offset;
+    const x = (pL + i * barW).toFixed(1);
+    const label = offset === 0 ? 'now' : Math.abs(offset) + 'h ago';
+    const anchor = offset === 0 ? 'end' : offset === -48 ? 'start' : 'middle';
+    return `<text x="${x}" y="${H - 4}" fill="#ffffff" font-size="14" text-anchor="${anchor}" font-family="Courier New">${label}</text>`;
+  }).join('');
+
+  const axes = `<line x1="${pL}" y1="${pT}" x2="${pL}" y2="${pT + ph}" stroke="#ffffff" stroke-width="1"/>
+                <line x1="${pL}" y1="${pT + ph}" x2="${pL + pw}" y2="${pT + ph}" stroke="#ffffff" stroke-width="1"/>`;
+
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" style="display:block">
+    ${grid}${bars}${axes}${xLabels}
+  </svg>`;
+}
+
 // ── Trade Size Histogram ──────────────────────────────────────────────────
 function renderHistogram(d) {
   const amounts = d.delphi?.trade_amounts || [];
@@ -472,7 +522,8 @@ async function refresh() {
     setPanel('p-morpho',   renderMorpho(d));
     setPanel('p-blocks',    renderBlocks(d));
     setPanel('p-usdc',      renderUsdce(d));
-    setPanel('p-histogram',    renderHistogram(d));
+    setPanel('p-trades-per-hour', renderTradesPerHour(d));
+    setPanel('p-histogram',       renderHistogram(d));
     setPanel('p-top-traders',  renderTopTraders(d));
   } catch (e) {
     document.getElementById('status').textContent = '● ' + e.message;
