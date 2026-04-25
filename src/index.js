@@ -117,7 +117,7 @@ async function ensureSchema(db) {
 }
 
 async function fetchDelphiStats(db) {
-  const [r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16, r17, r18, r19, r20, r21, r22, r23, r24, r25] = await db.batch([
+  const [r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16, r17, r18, r19, r20, r21, r22, r23, r24, r25, r26, r27] = await db.batch([
     db.prepare('SELECT COALESCE(SUM(tokens_in),0)  AS v FROM buys'),
     db.prepare('SELECT COALESCE(SUM(tokens_out),0) AS v FROM sells'),
     db.prepare('SELECT COALESCE(SUM(tokens_out),0) AS v FROM redemptions'),
@@ -149,12 +149,14 @@ async function fetchDelphiStats(db) {
     db.prepare(`SELECT COUNT(DISTINCT market_proxy) AS v FROM (SELECT market_proxy FROM buys WHERE timestamp_ > CAST(strftime('%s','now') AS INTEGER) - 86400 UNION SELECT market_proxy FROM sells WHERE timestamp_ > CAST(strftime('%s','now') AS INTEGER) - 86400 UNION SELECT market_proxy FROM resolutions WHERE timestamp_ > CAST(strftime('%s','now') AS INTEGER) - 86400)`),
     db.prepare(`SELECT COALESCE(SUM(market_creator_reward + market_creator_trading_fees), 0) AS v FROM resolutions WHERE timestamp_ > CAST(strftime('%s','now') AS INTEGER) - 86400`),
     db.prepare(`SELECT addr, COUNT(*) AS n, SUM(vol) AS vol FROM (SELECT buyer AS addr, tokens_in AS vol FROM buys UNION ALL SELECT seller AS addr, tokens_out AS vol FROM sells) GROUP BY addr ORDER BY n DESC LIMIT 10`),
+    db.prepare(`SELECT COUNT(DISTINCT market_proxy) AS v FROM (SELECT market_proxy FROM buys UNION SELECT market_proxy FROM sells) WHERE market_proxy NOT IN (SELECT market_proxy FROM resolutions)`),
     db.prepare(`SELECT COALESCE(SUM(tokens_in), 0) AS v FROM buys WHERE timestamp_ > CAST(strftime('%s','now') AS INTEGER) - 172800 AND timestamp_ <= CAST(strftime('%s','now') AS INTEGER) - 86400`),
     db.prepare(`SELECT COALESCE(SUM(tokens_out), 0) AS v FROM sells WHERE timestamp_ > CAST(strftime('%s','now') AS INTEGER) - 172800 AND timestamp_ <= CAST(strftime('%s','now') AS INTEGER) - 86400`),
     db.prepare(`SELECT COUNT(DISTINCT a) AS v FROM (SELECT buyer AS a FROM buys WHERE timestamp_ > CAST(strftime('%s','now') AS INTEGER) - 172800 AND timestamp_ <= CAST(strftime('%s','now') AS INTEGER) - 86400 UNION SELECT seller FROM sells WHERE timestamp_ > CAST(strftime('%s','now') AS INTEGER) - 172800 AND timestamp_ <= CAST(strftime('%s','now') AS INTEGER) - 86400)`),
     db.prepare(`SELECT COUNT(*) AS v FROM resolutions WHERE timestamp_ > CAST(strftime('%s','now') AS INTEGER) - 172800 AND timestamp_ <= CAST(strftime('%s','now') AS INTEGER) - 86400`),
     db.prepare(`SELECT COUNT(DISTINCT market_proxy) AS v FROM (SELECT market_proxy FROM buys WHERE timestamp_ > CAST(strftime('%s','now') AS INTEGER) - 172800 AND timestamp_ <= CAST(strftime('%s','now') AS INTEGER) - 86400 UNION SELECT market_proxy FROM sells WHERE timestamp_ > CAST(strftime('%s','now') AS INTEGER) - 172800 AND timestamp_ <= CAST(strftime('%s','now') AS INTEGER) - 86400 UNION SELECT market_proxy FROM resolutions WHERE timestamp_ > CAST(strftime('%s','now') AS INTEGER) - 172800 AND timestamp_ <= CAST(strftime('%s','now') AS INTEGER) - 86400)`),
     db.prepare(`SELECT COALESCE(SUM(market_creator_reward + market_creator_trading_fees), 0) AS v FROM resolutions WHERE timestamp_ > CAST(strftime('%s','now') AS INTEGER) - 172800 AND timestamp_ <= CAST(strftime('%s','now') AS INTEGER) - 86400`),
+    db.prepare(`SELECT COUNT(DISTINCT market_proxy) AS v FROM (SELECT market_proxy FROM buys WHERE timestamp_ <= CAST(strftime('%s','now') AS INTEGER) - 86400 UNION SELECT market_proxy FROM sells WHERE timestamp_ <= CAST(strftime('%s','now') AS INTEGER) - 86400) WHERE market_proxy NOT IN (SELECT market_proxy FROM resolutions WHERE timestamp_ <= CAST(strftime('%s','now') AS INTEGER) - 86400)`),
   ]);
   const v = (res) => res.results?.[0]?.v ?? 0;
   return {
@@ -177,12 +179,14 @@ async function fetchDelphiStats(db) {
     resolutions_24h: v(r16),
     markets_24h:    v(r17),
     fees_24h:       v(r18),
-    top_traders:       r19.results || [],
-    vol_prev24h:       v(r20) + v(r21),
-    traders_prev24h:   v(r22),
-    resolutions_prev24h: v(r23),
-    markets_prev24h:   v(r24),
-    fees_prev24h:      v(r25),
+    top_traders:         r19.results || [],
+    markets_live:        v(r20),
+    markets_live_prev:   v(r27),
+    vol_prev24h:         v(r21) + v(r22),
+    traders_prev24h:     v(r23),
+    resolutions_prev24h: v(r24),
+    markets_prev24h:     v(r25),
+    fees_prev24h:        v(r26),
   };
 }
 

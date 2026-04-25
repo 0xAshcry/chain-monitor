@@ -145,6 +145,7 @@ function row(label, val, color, note = '') {
 function pct_change(curr, prev) {
   if (!prev) return '<span style="color:rgba(255,255,255,0.4)">—</span>';
   const p = (curr - prev) / prev * 100;
+  if (Math.abs(p) > 999) return '<span style="color:rgba(255,255,255,0.4)">—</span>';
   const sign = p >= 0 ? '+' : '';
   const color = p > 0 ? G : p < 0 ? R : D;
   return `<span style="color:${color};font-weight:bold">${sign}${p.toFixed(0)}%</span>`;
@@ -231,12 +232,17 @@ function renderDelphi(d) {
       ${bar(rv / total * 100, T)}
     </tr>
     <tr><td colspan="4"><hr class="sep"></td></tr>
-    <tr><th></th><th class="r">24h</th><th class="r" style="padding-left:12px">Total</th><th class="r" style="padding-left:12px">24h %chg</th></tr>
-    <tr><td style="color:${W}">Markets</td>     <td class="r bold" style="color:${W}">${m.markets_24h ?? '—'}</td>     <td class="r bold" style="color:${W};padding-left:12px">${m.markets ?? '—'}</td>        <td class="r" style="padding-left:12px">${pct_change(m.markets_24h, m.markets_prev24h)}</td></tr>
-    <tr><td style="color:${W}">Volume</td>      <td class="r bold" style="color:${W}">${$m((m.buy_vol_24h || 0) + (m.sell_vol_24h || 0))}</td> <td class="r bold" style="color:${W};padding-left:12px">${$m(bv + sv)}</td> <td class="r" style="padding-left:12px">${pct_change((m.buy_vol_24h || 0) + (m.sell_vol_24h || 0), m.vol_prev24h)}</td></tr>
-    <tr><td style="color:${W}">Traders</td>     <td class="r bold" style="color:${W}">${m.traders_24h || 0}</td>       <td class="r bold" style="color:${W};padding-left:12px">${m.traders || 0}</td>        <td class="r" style="padding-left:12px">${pct_change(m.traders_24h, m.traders_prev24h)}</td></tr>
-    <tr><td style="color:${W}">Resolutions</td> <td class="r bold" style="color:${W}">${m.resolutions_24h || 0}</td>   <td class="r bold" style="color:${W};padding-left:12px">${m.resolutions || 0}</td>    <td class="r" style="padding-left:12px">${pct_change(m.resolutions_24h, m.resolutions_prev24h)}</td></tr>
-    <tr><td style="color:${W}">Fees</td>        <td class="r bold" style="color:${W}">${$m(m.fees_24h || 0)}</td>      <td class="r bold" style="color:${W};padding-left:12px">${$m(m.total_fees || 0)}</td>  <td class="r" style="padding-left:12px">${pct_change(m.fees_24h, m.fees_prev24h)}</td></tr>
+    <tr><th></th><th class="r">24h</th><th class="r" style="padding-left:12px">24h %chg</th><th class="r" style="padding-left:12px">All time</th></tr>
+    <tr>
+      <td style="color:${W}">Active Markets</td>
+      <td class="r bold" style="color:${W};padding-left:12px">${m.markets_live ?? '—'}</td>
+      <td class="r" style="padding-left:12px">${pct_change(m.markets_live, m.markets_live_prev)}</td>
+      <td class="r" style="color:${W};padding-left:12px">${m.markets ?? '—'}</td>
+    </tr>
+    <tr><td style="color:${W}">Volume</td>      <td class="r bold" style="color:${W}">${$m((m.buy_vol_24h || 0) + (m.sell_vol_24h || 0))}</td> <td class="r" style="padding-left:12px">${pct_change((m.buy_vol_24h || 0) + (m.sell_vol_24h || 0), m.vol_prev24h)}</td>         <td class="r" style="color:${W};padding-left:12px">${$m(bv + sv)}</td></tr>
+    <tr><td style="color:${W}">Traders</td>     <td class="r bold" style="color:${W}">${m.traders_24h || 0}</td>      <td class="r" style="padding-left:12px">${pct_change(m.traders_24h, m.traders_prev24h)}</td>                                                           <td class="r" style="color:${W};padding-left:12px">${m.traders || 0}</td></tr>
+    <tr><td style="color:${W}">Resolutions</td> <td class="r bold" style="color:${W}">${m.resolutions_24h || 0}</td>  <td class="r" style="padding-left:12px">${pct_change(m.resolutions_24h, m.resolutions_prev24h)}</td>                                                   <td class="r" style="color:${W};padding-left:12px">${m.resolutions || 0}</td></tr>
+    <tr><td style="color:${W}">Fees</td>        <td class="r bold" style="color:${W}">${$m(m.fees_24h || 0)}</td>     <td class="r" style="padding-left:12px">${pct_change(m.fees_24h, m.fees_prev24h)}</td>                                                                  <td class="r" style="color:${W};padding-left:12px">${$m(m.total_fees || 0)}</td></tr>
   </table>`;
 }
 
@@ -324,7 +330,7 @@ function renderLiquidity(d) {
     ${row('Delphi Locked',   usd(locked),      G)}
     ${row('Buy Burn Vault',  usd(r.bbv_usdc),  W)}
     <tr><td colspan="2"><hr class="sep"></td></tr>
-    ${row('ETH Supply',  d.l1_eth != null ? d.l1_eth.toFixed(4) + ' ETH' : '—', W)}
+    ${row('$ETH Supply',  d.l1_eth != null ? d.l1_eth.toFixed(4) + ' $ETH' : '—', W)}
     ${row('$AI Supply',  r.ai_supply != null ? (r.ai_supply / 1e9).toFixed(2) + 'B' : '—', W)}
   </table>`;
 }
