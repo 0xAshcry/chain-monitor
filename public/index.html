@@ -327,9 +327,12 @@ function renderBlocks(d) {
 function renderLiquidity(d) {
   const r = d.rpc || {}, m = d.delphi || {};
   const locked = ((m.buy_vol || 0) - (m.sell_vol || 0) - (m.redm_vol || 0)) / 1e6;
+  const vol    = ((m.buy_vol_24h || 0) + (m.sell_vol_24h || 0)) / 1e6;
+  const velocity = locked > 0 ? (vol / locked).toFixed(2) + 'x' : '—';
   return `<table>
     <tr><th>Source</th><th class="r">Value</th></tr>
-    ${row('Delphi Locked',   usd(locked),      G)}
+    ${row('Delphi TVL',       usd(locked),  G)}
+    ${row('Delphi Velocity',  velocity,     W)}
     ${row('Buy Burn Vault',  usd(r.bbv_usdc),  W)}
     <tr><td colspan="2"><div class="panel-title" style="margin:4px 0 2px">Supply</div></td></tr>
     ${row('$ETH',   d.l1_eth != null ? d.l1_eth.toFixed(4) : '—', W)}
