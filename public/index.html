@@ -31,6 +31,8 @@
 
   /* panel with centered dashed title */
   .panel { border: 1px solid #ffffff; padding: 8px 10px; margin-bottom: 6px; min-width: 0; }
+  #p-trades-per-hour { display: flex; flex-direction: column; }
+  #p-trades-per-hour svg { flex: 1; min-height: 0; }
   .panel-title {
     display: flex;
     align-items: center;
@@ -93,11 +95,13 @@
   <div class="panel" id="p-delphi"> <div class="panel-title">Delphi Markets</div> <span class="dim">loading…</span></div>
   <div class="panel" id="p-trades"> <div class="panel-title">Recent Trades</div>  <span class="dim">loading…</span></div>
 </div>
-<div class="panel" id="p-histogram">
-  <div class="panel-title">Trade Size Distribution</div>
-  <span class="dim">loading…</span>
+<div class="grid2">
+  <div class="panel" id="p-histogram">
+    <div class="panel-title">Trade Size Distribution</div>
+    <span class="dim">loading…</span>
+  </div>
+  <div class="panel" id="p-trades-per-hour"><div class="panel-title">Weekly Trading Volume</div><span class="dim">loading…</span></div>
 </div>
-<div class="panel" id="p-trades-per-hour"><div class="panel-title">Weekly trading volume</div><span class="dim">loading…</span></div>
 <div class="grid2">
   <div class="panel" id="p-pool">   <div class="panel-title">ETH / USDC.e Pool</div> <span class="dim">loading…</span></div>
   <div class="panel" id="p-morpho"> <div class="panel-title">Morpho Vault</div>       <span class="dim">loading…</span></div>
@@ -395,7 +399,7 @@ function renderTopTraders(d) {
   </table>`;
 }
 
-// ── Trades Per Hour ───────────────────────────────────────────────────────
+// ── Weekly Trading Volume ─────────────────────────────────────────────────
 function renderTradesPerHour(d) {
   const raw = d.delphi?.trades_per_hour || [];
   if (!raw.length) return '<span class="dim">No data</span>';
@@ -408,7 +412,7 @@ function renderTradesPerHour(d) {
   const counts = buckets.map(b => map.get(b) || 0);
   const maxCount = Math.max(...counts, 1);
 
-  const W = 880, H = 160;
+  const W = 880, H = 300;
   const pL = 38, pR = 8, pT = 8, pB = 28;
   const pw = W - pL - pR, ph = H - pT - pB;
   const barW = pw / BUCKETS;
@@ -439,7 +443,7 @@ function renderTradesPerHour(d) {
   const axes = `<line x1="${pL}" y1="${pT}" x2="${pL}" y2="${pT + ph}" stroke="#ffffff" stroke-width="1"/>
                 <line x1="${pL}" y1="${pT + ph}" x2="${pL + pw}" y2="${pT + ph}" stroke="#ffffff" stroke-width="1"/>`;
 
-  return `<svg width="100%" viewBox="0 0 ${W} ${H}" style="display:block">
+  return `<svg width="100%" height="100%" viewBox="0 0 ${W} ${H}" style="display:block">
     ${grid}${bars}${axes}${xLabels}
   </svg>`;
 }
@@ -457,8 +461,8 @@ function renderHistogram(d) {
   for (const a of amounts) counts[Math.min(Math.floor(a / bw), BINS - 1)]++;
   const maxCount = Math.max(...counts);
 
-  const W = 880, H = 440;
-  const pL = 38, pR = 8, pT = 8, pB = 36;
+  const W = 880, H = 300;
+  const pL = 38, pR = 8, pT = 8, pB = 28;
   const pw = W - pL - pR, ph = H - pT - pB;
   const barW = pw / BINS;
 
@@ -469,11 +473,11 @@ function renderHistogram(d) {
     return `<rect x="${x}" y="${y}" width="${(barW - 1).toFixed(1)}" height="${bh.toFixed(1)}" fill="${G}"/>`;
   }).join('');
 
-  const grid = [0.25, 0.5, 0.75, 1].map(f => {
+  const grid = [0.5, 1].map(f => {
     const y = (pT + ph - f * ph).toFixed(1);
     const label = Math.round(f * maxCount);
     return `<line x1="${pL}" y1="${y}" x2="${pL + pw}" y2="${y}" stroke="#ffffff" stroke-opacity="0.15" stroke-dasharray="3,3"/>
-            <text x="${pL - 3}" y="${(+y + 4).toFixed(1)}" fill="#ffffff" font-size="16" text-anchor="end" font-family="Courier New">${label}</text>`;
+            <text x="${pL - 3}" y="${(+y + 4).toFixed(1)}" fill="#ffffff" font-size="14" text-anchor="end" font-family="Courier New">${label}</text>`;
   }).join('');
 
   const xLabels = [0, 0.25, 0.5, 0.75, 1].map(f => {
@@ -486,7 +490,7 @@ function renderHistogram(d) {
       label = val >= 10 ? val.toFixed(0) : val.toFixed(2);
     }
     const anchor = f === 1 ? 'end' : f === 0 ? 'start' : 'middle';
-    return `<text x="${x}" y="${H - 4}" fill="#ffffff" font-size="16" text-anchor="${anchor}" font-family="Courier New">${label}</text>`;
+    return `<text x="${x}" y="${H - 4}" fill="#ffffff" font-size="14" text-anchor="${anchor}" font-family="Courier New">${label}</text>`;
   }).join('');
 
   const axes = `<line x1="${pL}" y1="${pT}" x2="${pL}" y2="${pT + ph}" stroke="#ffffff" stroke-width="1"/>
