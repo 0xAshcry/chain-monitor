@@ -93,13 +93,24 @@ npx wrangler deploy
 ### Local development
 
 ```bash
+# normal local dev (web app + /api/data)
 npx wrangler dev
 ```
 
 Opens at `http://localhost:8787`. Uses the remote D1 database by default.
 
-To trigger the Delphi sync cron manually while dev is running:
+To test the scheduled Delphi sync locally, start Wrangler in scheduled-test mode:
+
+```bash
+npm run dev:scheduled
+# or: npx wrangler dev --test-scheduled
+```
+
+Then trigger the scheduled handler manually:
 
 ```bash
 curl "http://localhost:8787/__scheduled"
 ```
+
+Note: `__scheduled` returns `404` when using plain `wrangler dev` without
+`--test-scheduled`.
