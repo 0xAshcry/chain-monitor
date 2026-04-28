@@ -2,6 +2,14 @@
 
 Live monitoring dashboard for the Gensyn mainnet. Available as a terminal app (Python/rich) and a web dashboard (Cloudflare Worker + D1).
 
+## Dashboard preview
+
+![Local dashboard screenshot](docs/assets/dashboard-localhost.png)
+
+UI note: the Funding panel now clamps derived Delphi TVL at `$0.00` when cumulative sell/redemption flow exceeds cumulative buy flow, and shows an orange `net outflow` note instead of displaying a misleading negative TVL.
+
+Deployment checklist: see [`docs/deployment-checklist.md`](docs/deployment-checklist.md).
+
 ---
 
 ## Terminal monitor
